@@ -25,13 +25,13 @@ namespace forceinline {
 		me.dwSize = sizeof me;
 
 		//Is our snapshot valid?
-		if ( !snapshot )
+		if ( snapshot == INVALID_HANDLE_VALUE )
 			throw std::exception( "memory_manager::get_module_entry: failed to create snapshot" );
 
 		//Iterate through the processes modules
 		for ( Module32First( snapshot, &me ); Module32Next( snapshot, &me ); ) {
 			//We found our module, stop iterating
-			if ( module.compare( me.szModule ) == 0 )
+			if ( module == me.szModule )
 				break;
 		}
 
@@ -66,7 +66,7 @@ namespace forceinline {
 		//Allocate sizeof module bytes
 		std::vector< std::uint8_t > module_bytes( module_size );
 
-		std::size_t page_size = 4096;
+		constexpr std::size_t page_size = 4096;
 		std::size_t num_pages = module_size / page_size;
 		std::size_t page_remainder = module_size % page_size;
 
@@ -166,10 +166,6 @@ namespace forceinline {
 
 		//Return 0 as we didn't find anything
 		return 0x0;
-	}
-
-	bool memory_manager::is_attached( ) {
-		return m_proc_handle != nullptr; //Are we attached to our target process?
 	}
 
 	std::uintptr_t memory_manager::operator[ ]( std::string_view module ) {
