@@ -4,7 +4,7 @@
 #include <Windows.h>
 #include <Psapi.h>
 #include <TlHelp32.h>
-#include <optional>
+#include <stdexcept>
 
 namespace forceinline {
 	class memory_manager {
@@ -22,13 +22,13 @@ namespace forceinline {
 		std::uintptr_t find_pattern( std::uintptr_t module_begin, std::size_t module_size, std::string_view pattern );
 
 		template < typename T >
-		std::optional< T > read( std::uintptr_t address ) {
+		T read( std::uintptr_t address, std::size_t* bytes_read = nullptr ) {
 			T temp_val;		
 			
-			if ( !!ReadProcessMemory( m_proc_handle, reinterpret_cast< const void* >( address ), &temp_val, sizeof T, nullptr ) )
+			if ( !!ReadProcessMemory( m_proc_handle, reinterpret_cast< const void* >( address ), &temp_val, sizeof T, reinterpret_cast< SIZE_T* >( bytes_read ) ) )
 				return temp_val;
 
-			return { };
+			throw std::runtime_error( "memory_manager::read: ReadProcessMemory failure" );
 		}
 
 		/*
@@ -38,23 +38,28 @@ namespace forceinline {
 			read_ex< float >( float_arr_ptr, 0xDEADBEEF, 64 )
 		*/
 		template < typename T >
-		bool read_ex( T* out_object_ptr, std::uintptr_t address, std::size_t object_count ) {
-			return !!ReadProcessMemory( m_proc_handle, reinterpret_cast< const void* >( address ), out_object_ptr, sizeof T * object_count, nullptr );
+		void read_ex( T* out_object_ptr, std::uintptr_t address, std::size_t object_count, std::size_t* bytes_read = nullptr ) {
+			if ( !ReadProcessMemory( m_proc_handle, reinterpret_cast< const void* >( address ), out_object_ptr, sizeof T * object_count, reinterpret_cast< SIZE_T* >( bytes_read ) ) )
+				throw std::runtime_error( "memory_manager::read_ex: ReadProcessMemory failure" );
 		}
 
 		template < typename T >
-		bool write( std::uintptr_t address, T value ) {
-			return !!WriteProcessMemory( m_proc_handle, reinterpret_cast< void* >( address ), &value, sizeof T, nullptr );
+		void write( std::uintptr_t address, T value, std::size_t* bytes_written = nullptr ) {
+			if ( !WriteProcessMemory( m_proc_handle, reinterpret_cast< void* >( address ), &value, sizeof T, reinterpret_cast< SIZE_T* >( bytes_written ) ) )
+				throw std::runtime_error( "memory_manager::write: WriteProcessMemory failure" );
 		}
 
 		//See read_ex
 		template < typename T >
-		bool write_ex( T* object_ptr, std::uintptr_t address, std::size_t object_count ) {
-			return !!WriteProcessMemory( m_proc_handle, reinterpret_cast< void* >( address ), object_ptr, sizeof T * object_count, nullptr );
+		void write_ex( T* object_ptr, std::uintptr_t address, std::size_t object_count, std::size_t* bytes_written = nullptr ) {
+			if ( !WriteProcessMemory( m_proc_handle, reinterpret_cast< void* >( address ), object_ptr, sizeof T * object_count, reinterpret_cast< SIZE_T* >( bytes_written ) ) )
+				throw std::runtime_error( "memory_manager::write_ex: WriteProcessMemory failure" );
 		}
 
+		// Returns the module base address
 		std::uintptr_t operator[ ]( std::string_view module );
-
+		
+	// Internals
 	private:
 		void attach_to_process( std::string_view process );
 
