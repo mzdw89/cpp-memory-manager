@@ -27,13 +27,16 @@ namespace forceinline {
 		// Iterate through the processes modules
 		MODULEENTRY32 me;
 		me.dwSize = sizeof me;
-		for ( Module32First( snapshot, &me ); Module32Next( snapshot, &me ); ) {
-			// We found our module, stop iterating
-			if ( module == me.szModule ) {
-				// Remember to close handle
-				CloseHandle( snapshot );
-				return me;
-			}
+
+		if ( Module32First( snapshot, &me ) ) {
+			do {
+				// We found our module, stop iterating
+				if ( module == me.szModule ) {
+					// Remember to close handle
+					CloseHandle( snapshot );
+					return me;
+				}
+			} while ( Module32Next( snapshot, &me ) );
 		}
 
 		// We didn't find the module. Remember to close handle!
@@ -180,14 +183,17 @@ namespace forceinline {
 		// Enumerate running processes
 		PROCESSENTRY32 pe;
 		pe.dwSize = sizeof pe;
-		for ( Process32First( snapshot, &pe ); Process32Next( snapshot, &pe ); ) {
-			// Have we found our target process?
-			if ( process.compare( pe.szExeFile ) == 0 ) {
-				// Open handle with rights to read, write, allocate memory and create remote threads
-				m_proc_id = pe.th32ProcessID;
-				m_proc_handle = OpenProcess( PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_CREATE_THREAD, FALSE, m_proc_id );
-				break;
-			}
+		
+		if ( Process32First( snapshot, &pe ) ) {
+			do {
+				// Have we found our target process?
+				if ( process.compare( pe.szExeFile ) == 0 ) {
+					// Open handle with rights to read, write, allocate memory and create remote threads
+					m_proc_id = pe.th32ProcessID;
+					m_proc_handle = OpenProcess( PROCESS_ALL_ACCESS, FALSE, m_proc_id );
+					break;
+				}
+			} while ( Process32Next( snapshot, &pe ) );
 		}
 
 		// Close snapshot handle
