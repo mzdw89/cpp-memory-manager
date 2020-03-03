@@ -13,4 +13,4 @@ try {
 Everything is commented and should be easily understandable. If not, please add a comment and issue a pull request or create an issue. Thank you.
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
